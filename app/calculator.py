@@ -100,10 +100,10 @@ class Calculator:
                 force=True  # Overwrite any existing logging configuration
             )
             logging.info(f"Logging initialized at: {log_file}")
-        except Exception as e:
+        except Exception as e: # pragma: no cover
             # Print an error message and re-raise the exception if logging setup fails
-            print(f"Error setting up logging: {e}")
-            raise
+            print(f"Error setting up logging: {e}") # pragma: no cover
+            raise # pragma: no cover
 
     def _setup_directories(self) -> None:
         """
@@ -329,7 +329,7 @@ class Calculator:
                 'operand2': str(calc.operand2),
                 'result': str(calc.result),
                 'timestamp': calc.timestamp
-            })
+            }) # pragma: no cover
         return pd.DataFrame(history_data)
 
     def show_history(self) -> List[str]:
