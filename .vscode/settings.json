@@ -1,0 +1,39 @@
+{
+    "python.testing.pytestArgs": [
+        "tests",
+        "--no-cov"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    
+    // Python interpreter settings
+    "python.pythonPath": "${workspaceFolder}/venv/bin/python",
+
+    // Environment variables
+    "python.envFile": "${workspaceFolder}/.env",
+
+    // Enable detailed debugging logs
+    "python.logging.level": "DEBUG",
+
+    // Test settings
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,  // Automatically discover tests on save
+
+    // Linting and formatting
+    "python.formatting.provider": "black",  // Use Black for formatting
+    "editor.formatOnSave": true,  // Automatically format on save
+    "python.linting.enabled": true,  // Enable linting
+    "python.linting.pylintEnabled": true,
+    "python.linting.flake8Enabled": false,
+
+    // IntelliSense improvements
+    "python.analysis.autoSearchPaths": true,
+    "python.analysis.completeFunctionParens": true,  // Auto-complete function parentheses
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/app"
+    ],
+
+    // Set the PYTHONPATH for terminal commands
+    "terminal.integrated.env.linux": {
+        "PYTHONPATH": "${workspaceFolder}"
+    }
+}
