@@ -93,6 +93,31 @@ def test_perform_operation_operation_error(calculator):
     with pytest.raises(OperationError, match="No operation set"):
         calculator.perform_operation(2, 3)
 
+def test_perform_operation_unexpected_operation_failure(calculator):
+    operation = Mock()
+    operation.execute.side_effect = RuntimeError("unexpected failure")
+
+    calculator.set_operation(operation)
+
+    with pytest.raises(OperationError, match="Operation failed: unexpected failure"):
+        calculator.perform_operation(2, 3)
+
+def test_perform_operation_notifies_observer(calculator):
+    observer = Mock()
+    calculator.add_observer(observer)
+
+    operation = OperationFactory.create_operation('add')
+    calculator.set_operation(operation)
+
+    calculator.perform_operation(2, 3)
+
+    observer.update.assert_called_once()
+    calculation = observer.update.call_args[0][0]
+
+    assert calculation.operation == "Addition"
+    assert calculation.operand1 == Decimal("2")
+    assert calculation.operand2 == Decimal("3")
+
 # Test Undo/Redo Functionality
 
 def test_undo(calculator):
@@ -102,6 +127,10 @@ def test_undo(calculator):
     calculator.undo()
     assert calculator.history == []
 
+def test_undo_with_empty_stack(calculator):
+    assert calculator.undo() is False
+    assert calculator.history == []
+
 def test_redo(calculator):
     operation = OperationFactory.create_operation('add')
     calculator.set_operation(operation)
@@ -109,6 +138,10 @@ def test_redo(calculator):
     calculator.undo()
     calculator.redo()
     assert len(calculator.history) == 1
+
+def test_redo_with_empty_stack(calculator):
+    assert calculator.redo() is False
+    assert calculator.history == []
 
 def test_calculator_memento_to_dict(calculator):
     operation = OperationFactory.create_operation('add')
@@ -182,9 +215,58 @@ def test_load_history(mock_exists, mock_read_csv, calculator):
         assert calculator.history[0].operand2 == Decimal("3")
         assert calculator.history[0].result == Decimal("5")
     except OperationError:
-        pytest.fail("Loading history failed due to OperationError")
-        
-            
+        pytest.fail("Loading history failed due to OperationError")    
+
+@patch('app.calculator.pd.read_csv')
+@patch('app.calculator.Path.exists', return_value=True)
+def test_load_history_failure(mock_exists, mock_read_csv, calculator):
+    mock_read_csv.side_effect = OSError("cannot read file")
+
+    with pytest.raises(OperationError, match="Failed to load history: cannot read file"):
+        calculator.load_history()
+
+def test_history_respects_max_history_size(calculator):
+    calculator.config.max_history_size = 2
+
+    operation = OperationFactory.create_operation('add')
+    calculator.set_operation(operation)
+
+    calculator.perform_operation(1, 2)
+    calculator.perform_operation(3, 4)
+    calculator.perform_operation(5, 6)
+
+    assert len(calculator.history) == 2
+
+    assert calculator.history[0].operand1 == Decimal("3")
+    assert calculator.history[1].operand1 == Decimal("5")
+
+@patch('app.calculator.pd.DataFrame.to_csv')
+def test_save_history_failure(mock_to_csv, calculator):
+    mock_to_csv.side_effect = OSError("disk full")
+
+    operation = OperationFactory.create_operation('add')
+    calculator.set_operation(operation)
+    calculator.perform_operation(2, 3)
+
+    with pytest.raises(OperationError, match="Failed to save history: disk full"):
+        calculator.save_history()
+
+def test_get_history_dataframe_empty(calculator):
+    dataframe = calculator.get_history_dataframe()
+
+    assert isinstance(dataframe, pd.DataFrame)
+    assert dataframe.empty
+
+def test_show_history(calculator):
+    operation = OperationFactory.create_operation('add')
+    calculator.set_operation(operation)
+    calculator.perform_operation(2, 3)
+
+    history = calculator.show_history()
+
+    assert len(history) == 1
+    assert history[0] == "Addition(2, 3) = 5"
+
 # Test Clearing History
 
 def test_clear_history(calculator):
