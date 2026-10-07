@@ -11,6 +11,7 @@ from app.calculator_config import CalculatorConfig
 from app.exceptions import OperationError, ValidationError
 from app.history import LoggingObserver, AutoSaveObserver
 from app.operations import OperationFactory
+from app.calculator_memento import CalculatorMemento
 
 # Fixture to initialize Calculator with a temporary directory for file paths
 @pytest.fixture
@@ -108,6 +109,45 @@ def test_redo(calculator):
     calculator.undo()
     calculator.redo()
     assert len(calculator.history) == 1
+
+def test_calculator_memento_to_dict(calculator):
+    operation = OperationFactory.create_operation('add')
+    calculator.set_operation(operation)
+    calculator.perform_operation(2, 3)
+
+    memento = CalculatorMemento(calculator.history.copy())
+    memento_dict = memento.to_dict()
+
+    assert 'history' in memento_dict
+    assert 'timestamp' in memento_dict
+    assert len(memento_dict['history']) == 1
+
+    assert memento_dict['history'][0]['operation'] == 'Addition'
+    assert memento_dict['history'][0]['operand1'] == '2'
+    assert memento_dict['history'][0]['operand2'] == '3'
+    assert memento_dict['history'][0]['result'] == '5'
+
+
+def test_calculator_memento_from_dict(calculator):
+    operation = OperationFactory.create_operation('add')
+    calculator.set_operation(operation)
+    calculator.perform_operation(2, 3)
+
+    original_memento = CalculatorMemento(calculator.history.copy())
+    memento_dict = original_memento.to_dict()
+
+    restored_memento = CalculatorMemento.from_dict(memento_dict)
+
+    assert isinstance(restored_memento, CalculatorMemento)
+    assert len(restored_memento.history) == 1
+
+    restored_calculation = restored_memento.history[0]
+    assert restored_calculation.operation == 'Addition'
+    assert restored_calculation.operand1 == Decimal('2')
+    assert restored_calculation.operand2 == Decimal('3')
+    assert restored_calculation.result == Decimal('5')
+
+    assert restored_memento.timestamp == original_memento.timestamp
 
 # Test History Management
 
