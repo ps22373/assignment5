@@ -130,3 +130,26 @@ def test_from_dict_result_mismatch(caplog):
 
     # Assert
     assert "Loaded calculation result 10 differs from computed result 5" in caplog.text
+
+
+# More tests
+
+def test_string_representation():
+    """Test the human-readable string representation."""
+    calc = Calculation(
+        operation="Addition",
+        operand1=Decimal("2"),
+        operand2=Decimal("3")
+    )
+
+    assert str(calc) == "Addition(2, 3) = 5"
+
+def test_equality_with_non_calculation():
+    """Test comparison with an object that is not a Calculation."""
+    calc = Calculation(
+        operation="Addition",
+        operand1=Decimal("2"),
+        operand2=Decimal("3")
+    )
+
+    assert calc != "not a calculation"
