@@ -178,3 +178,174 @@ def test_calculator_repl_help(mock_print, mock_input):
 def test_calculator_repl_addition(mock_print, mock_input):
     calculator_repl()
     mock_print.assert_any_call("\nResult: 5")
+
+
+@patch('builtins.input', side_effect=['history', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_history_empty(mock_print, mock_input):
+    with patch('app.calculator.Calculator.show_history', return_value=[]):
+        calculator_repl()
+
+    mock_print.assert_any_call("No calculations in history")
+
+
+@patch('builtins.input', side_effect=['history', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_history_with_entries(mock_print, mock_input):
+    history = ["2 + 3 = 5",
+               "4 * 5 = 20"]
+
+    with patch('app.calculator.Calculator.show_history', return_value=history):
+        calculator_repl()
+
+    mock_print.assert_any_call("\nCalculation History:")
+    mock_print.assert_any_call("1. 2 + 3 = 5")
+    mock_print.assert_any_call("2. 4 * 5 = 20")
+
+
+@patch('builtins.input', side_effect=['clear', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_clear(mock_print, mock_input):
+    with patch('app.calculator.Calculator.clear_history') as mock_clear:
+        calculator_repl()
+
+    mock_clear.assert_called_once()
+    mock_print.assert_any_call("History cleared")
+
+
+@patch('builtins.input', side_effect=['undo', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_undo_success(mock_print, mock_input):
+    with patch('app.calculator.Calculator.undo', return_value=True) as mock_undo:
+        calculator_repl()
+
+    mock_undo.assert_called_once()
+    mock_print.assert_any_call("Operation undone")
+
+
+@patch('builtins.input', side_effect=['undo', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_undo_nothing(mock_print, mock_input):
+    with patch('app.calculator.Calculator.undo', return_value=False) as mock_undo:
+        calculator_repl()
+
+    mock_undo.assert_called_once()
+    mock_print.assert_any_call("Nothing to undo")
+
+
+@patch('builtins.input', side_effect=['redo', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_redo_success(mock_print, mock_input):
+    with patch('app.calculator.Calculator.redo', return_value=True) as mock_redo:
+        calculator_repl()
+
+    mock_redo.assert_called_once()
+    mock_print.assert_any_call("Operation redone")
+
+
+@patch('builtins.input', side_effect=['redo', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_redo_nothing(mock_print, mock_input):
+    with patch('app.calculator.Calculator.redo', return_value=False) as mock_redo:
+        calculator_repl()
+
+    mock_redo.assert_called_once()
+    mock_print.assert_any_call("Nothing to redo")
+
+
+@patch('builtins.input', side_effect=['save', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_save_success(mock_print, mock_input):
+    with patch('app.calculator.Calculator.save_history') as mock_save:
+        calculator_repl()
+
+    # Called once for the explicit save and once when exiting.
+    assert mock_save.call_count == 2
+    mock_print.assert_any_call("History saved successfully")
+
+
+@patch('builtins.input', side_effect=['save', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_save_error(mock_print, mock_input):
+    with patch(
+        'app.calculator.Calculator.save_history',
+        side_effect=Exception("save failed")
+    ):
+        calculator_repl()
+
+    mock_print.assert_any_call("Error saving history: save failed")
+
+
+@patch('builtins.input', side_effect=['load', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_load_error(mock_print, mock_input):
+    with patch(
+        'app.calculator.Calculator.load_history',
+        side_effect=Exception("load failed")
+    ):
+        calculator_repl()
+
+    mock_print.assert_any_call("Error loading history: load failed")
+
+
+@patch('builtins.input', side_effect=['add', '2', 'cancel', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_cancel_second_number(mock_print, mock_input):
+    calculator_repl()
+
+    mock_print.assert_any_call("Operation cancelled")
+
+
+@patch('builtins.input', side_effect=['add', 'bad', '3', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_validation_error(mock_print, mock_input):
+    with patch(
+        'app.calculator.Calculator.perform_operation',
+        side_effect=ValidationError("invalid number")
+    ):
+        calculator_repl()
+
+    mock_print.assert_any_call("Error: invalid number")
+
+
+@patch('builtins.input', side_effect=['add', '2', '3', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_operation_error(mock_print, mock_input):
+    with patch(
+        'app.calculator.Calculator.perform_operation',
+        side_effect=OperationError("operation failed")
+    ):
+        calculator_repl()
+
+    mock_print.assert_any_call("Error: operation failed")
+
+
+@patch('builtins.input', side_effect=['add', '2', '3', 'exit'])
+@patch('builtins.print')
+def test_calculator_repl_unexpected_operation_error(mock_print, mock_input):
+    with patch(
+        'app.calculator.Calculator.perform_operation',
+        side_effect=RuntimeError("unexpected failure")
+    ):
+        calculator_repl()
+
+    mock_print.assert_any_call("Unexpected error: unexpected failure")
+
+
+@patch('builtins.input', side_effect=EOFError)
+@patch('builtins.print')
+def test_calculator_repl_eof(mock_print, mock_input):
+    calculator_repl()
+
+    mock_print.assert_any_call("\nInput terminated. Exiting...")
+
+
+@patch(
+    'builtins.input',
+    side_effect=[RuntimeError("input failure"), 'exit']
+)
+@patch('builtins.print')
+def test_calculator_repl_main_loop_error(mock_print, mock_input):
+    calculator_repl()
+
+    mock_print.assert_any_call("Error: input failure")
